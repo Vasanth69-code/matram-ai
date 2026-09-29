@@ -2,6 +2,7 @@ import type { CivicIssue, Language } from "../types"
 import { StatusBadge, PriorityBadge, SLABadge } from "./StatusBadge"
 import { CATEGORY_ICONS } from "./CategoryIcons"
 import { generateCivicReportPDF } from "../services/pdfReportService"
+import { getBeforeImage, getAfterImage } from "../utils/imageUtils"
 
 interface ComplaintCardProps {
   complaint: CivicIssue
@@ -34,42 +35,45 @@ export function ComplaintCard({
 
   return (
     <div className="w-full bg-white border border-[#d0d5e2] rounded-3xl p-5 hover:border-[#1c3a6e] hover:shadow-md transition-all duration-150 group space-y-3.5">
-      {/* Resolved Before & After Photo Comparison */}
-      {isResolved && complaint.resolvedImageUrl ? (
-        <div className="grid grid-cols-2 gap-2 rounded-2xl overflow-hidden border border-emerald-200 bg-emerald-50/40 p-1.5">
-          <div className="relative rounded-xl overflow-hidden h-28 bg-black">
+      {/* Before & After Photo Display */}
+      {isResolved ? (
+        <div className="grid grid-cols-2 gap-2 rounded-2xl overflow-hidden border border-emerald-200 bg-emerald-50/40 p-1.5 shadow-xs">
+          <div className="relative rounded-xl overflow-hidden h-32 bg-black">
             <img
-              src={complaint.imageUrl || complaint.resolvedImageUrl}
+              src={getBeforeImage(complaint)}
               alt="Before"
               className="w-full h-full object-cover"
             />
-            <span className="absolute bottom-1 left-1 bg-black/70 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
-              📸 Before
+            <span className="absolute bottom-1.5 left-1.5 bg-black/80 text-white text-[9px] font-extrabold px-2 py-0.5 rounded-md backdrop-blur-xs">
+              📸 BEFORE
             </span>
           </div>
-          <div className="relative rounded-xl overflow-hidden h-28 bg-emerald-950">
+          <div className="relative rounded-xl overflow-hidden h-32 bg-emerald-950">
             <img
-              src={complaint.resolvedImageUrl}
+              src={getAfterImage(complaint)}
               alt="After Proof"
               className="w-full h-full object-cover"
             />
-            <span className="absolute bottom-1 left-1 bg-emerald-700 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
-              ✓ Resolved After
+            <span className="absolute bottom-1.5 left-1.5 bg-emerald-700 text-white text-[9px] font-extrabold px-2 py-0.5 rounded-md shadow-xs">
+              ✓ AFTER
             </span>
           </div>
         </div>
-      ) : complaint.imageUrl ? (
-        <div className="w-full h-44 rounded-2xl overflow-hidden border border-gray-200 bg-gray-100 relative">
+      ) : (
+        <div className="w-full h-44 rounded-2xl overflow-hidden border border-gray-200 bg-gray-100 relative shadow-xs">
           <img
-            src={complaint.imageUrl}
+            src={getBeforeImage(complaint)}
             alt={complaint.title}
             className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-200"
           />
           <div className="absolute top-2 left-2 px-2 py-0.5 bg-black/60 backdrop-blur-xs text-white text-[10px] font-bold rounded-md">
             📍 {complaint.district || "Incident Site"}
           </div>
+          <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-red-600/90 text-white text-[9px] font-extrabold rounded-md shadow-xs">
+            📸 BEFORE
+          </div>
         </div>
-      ) : null}
+      )}
 
       <div className="flex items-start gap-3.5">
         {!complaint.imageUrl && !complaint.resolvedImageUrl && (

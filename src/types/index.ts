@@ -119,6 +119,11 @@ export interface CivicIssue {
   resolutionNotes?: string
   resolutionNotesTa?: string
 
+  // Citizen Profile (when using Verified Citizen Profile)
+  citizenName?: string
+  citizenPhone?: string
+  citizenMobile?: string
+
   // Geospatial & Administrative
   lat: number
   lng: number

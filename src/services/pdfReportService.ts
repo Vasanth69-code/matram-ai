@@ -281,6 +281,29 @@ export function generateCivicReportPDF(issue: CivicIssue, lang: "en" | "ta" = "e
     </div>
   </div>
 
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-label">Citizen Identity & Grievance Mode</div>
+      <div class="card-value" style="color: ${issue.anonymous ? '#64748b' : '#047857'};">
+        ${issue.anonymous ? '🕶️ Anonymous Submission (Identity Protected)' : `✓ ${issue.citizenName || 'Verified Citizen Profile'}`}
+      </div>
+      ${!issue.anonymous && (issue.citizenPhone || issue.citizenMobile) ? `
+      <div style="font-size: 11px; color: #1c3a6e; font-family: 'JetBrains Mono', monospace; margin-top: 4px;">
+        📱 Mobile: +91 ${issue.citizenPhone || issue.citizenMobile} (SMS Subscribed)
+      </div>` : ''}
+    </div>
+
+    <div class="card">
+      <div class="card-label">Submission & SLA Benchmark</div>
+      <div class="card-value" style="font-size: 12px;">
+        Reported: ${formattedDate} at ${formattedTime}
+      </div>
+      <div style="font-size: 11px; color: #b45309; margin-top: 4px; font-weight: 700;">
+        ⏱️ Target SLA: ${issue.slaHours || 48} Hours Standard Redressal
+      </div>
+    </div>
+  </div>
+
   <!-- Photographs (Before and After Proof) -->
   <div class="section-title">3. Photographic Evidence & Resolution Proof</div>
   <div class="photo-grid">

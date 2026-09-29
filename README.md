@@ -69,11 +69,40 @@
 
 ---
 
+---
+
+## 📂 Project Structure
+
+```
+matram-ai/
+├── backend/                  # Express + TypeScript + MongoDB Backend API
+│   ├── src/
+│   │   ├── config/db.ts      # MongoDB Atlas connection & local fallback logic
+│   │   ├── models/           # Mongoose schemas & TypeScript interfaces
+│   │   ├── routes/           # REST API routes (/api/issues, /api/stats)
+│   │   ├── seed.ts           # Auto-seeding script with SVG evidence generators
+│   │   └── server.ts         # Express server entry point (Port 5000)
+│   ├── package.json
+│   └── README.md             # Backend API Documentation
+│
+├── src/                      # React 19 + Vite + Tailwind CSS v4 Frontend Application
+│   ├── ai/                   # Multimodal Gemini 2.5 Flash Vision AI engine
+│   ├── components/           # Reusable UI components & interactive maps
+│   ├── contexts/             # App global context & language providers
+│   ├── i18n/                 # English & Tamil (தமிழ்) translation strings
+│   ├── pages/                # Page components (Home, Report, Track, Dashboards, Map)
+│   ├── services/             # API services & PDF report generator
+│   └── utils/                # SVG Data URI sanitizers & helpers
+├── package.json
+└── README.md                 # Root Platform Documentation
+```
+
+---
+
 ## 🛠️ Technology Stack
 
-- **Framework:** React 19, TypeScript
-- **Build Tool:** Vite 8
-- **Styling:** Tailwind CSS v4 (`@tailwindcss/vite`), Vanilla CSS tokens
+- **Frontend:** React 19, TypeScript, Vite 8, Tailwind CSS v4 (`@tailwindcss/vite`)
+- **Backend:** Node.js, Express.js, Mongoose, MongoDB Atlas
 - **AI / Multimodal:** Google Generative AI (Gemini 2.5 Flash / Flash-Lite / Pro)
 - **Mapping & GIS:** MapLibre GL
 - **Data Visualization:** Recharts
@@ -89,27 +118,46 @@ git clone https://github.com/Vasanth69-code/matram-ai.git
 cd matram-ai
 ```
 
-### 2. Install Dependencies
+### 2. Install Dependencies (Frontend & Backend)
 ```bash
+# Install frontend dependencies
 npm install
+
+# Install backend dependencies
+cd backend
+npm install
+cd ..
 ```
 
-### 3. Configure Gemini AI API Key
-Obtain a free Gemini API key from [Google AI Studio](https://aistudio.google.com/app/apikey). Create a `.env` file in the root directory:
+### 3. Configure Environment Variables
+
+**Frontend (`.env` in root):**
 ```env
 VITE_GEMINI_API_KEY="your_google_gemini_api_key_here"
+VITE_BACKEND_URL="http://localhost:5000"
 ```
 
-### 4. Run the Development Server
+**Backend (`backend/.env`):**
+```env
+PORT=5000
+MONGODB_URI="mongodb+srv://hemavasanth69_db_user:Hema%402006@cluster0.zgnq98j.mongodb.net/matram_ai?retryWrites=true&w=majority&appName=Cluster0"
+```
+
+### 4. Run Development Servers
+
+**Run Express Backend Server (Port 5000):**
 ```bash
+cd backend
 npm run dev
 ```
-Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-### 5. Build for Production
+**Run React Frontend Application (Port 5173):**
 ```bash
-npm run build
+# In a new terminal window at project root
+npm run dev
 ```
+
+Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ---
 

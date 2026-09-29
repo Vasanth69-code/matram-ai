@@ -253,6 +253,7 @@ export function CivicMap({
             tags: (issue.tags || []).slice(0, 3).join(" "),
             address: issue.address || "",
             imageUrl: issue.imageUrl || "",
+            resolvedImageUrl: issue.resolvedImageUrl || "",
             color: catConfig.color,
             bgLight: catConfig.bgLight,
             emoji: catConfig.emoji,
@@ -706,6 +707,26 @@ export function CivicMap({
               ${props.priority}
             </span>
           </div>
+
+          ${
+            props.status === "resolved"
+              ? `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 8px;">
+                  <div style="position: relative; height: 75px; border-radius: 8px; overflow: hidden; background: #000;">
+                    <img src="${props.imageUrl || props.resolvedImageUrl}" style="width: 100%; height: 100%; object-fit: cover;" />
+                    <span style="position: absolute; bottom: 2px; left: 2px; background: rgba(0,0,0,0.8); color: white; font-size: 8px; font-weight: bold; padding: 1px 4px; border-radius: 3px;">BEFORE</span>
+                  </div>
+                  <div style="position: relative; height: 75px; border-radius: 8px; overflow: hidden; background: #064e3b;">
+                    <img src="${props.resolvedImageUrl || props.imageUrl}" style="width: 100%; height: 100%; object-fit: cover;" />
+                    <span style="position: absolute; bottom: 2px; left: 2px; background: #15803d; color: white; font-size: 8px; font-weight: bold; padding: 1px 4px; border-radius: 3px;">AFTER ✓</span>
+                  </div>
+                </div>`
+              : props.imageUrl
+                ? `<div style="position: relative; height: 95px; border-radius: 8px; overflow: hidden; margin-bottom: 8px; background: #f1f5f9;">
+                    <img src="${props.imageUrl}" style="width: 100%; height: 100%; object-fit: cover;" />
+                    <span style="position: absolute; bottom: 2px; left: 2px; background: rgba(220,38,38,0.9); color: white; font-size: 8px; font-weight: bold; padding: 1px 4px; border-radius: 3px;">BEFORE</span>
+                  </div>`
+                : ""
+          }
 
           <div style="color: #64748b; font-size: 11px; margin-bottom: 4px;">
             🏢 <strong>${deptText}</strong>

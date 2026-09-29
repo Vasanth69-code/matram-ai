@@ -34,6 +34,8 @@ interface ReportFormData {
   lng: number
   departmentId: DepartmentId
   privacy: "anonymous" | "account"
+  citizenName: string
+  citizenMobile: string
   routingInfo?: DepartmentRoutingInfo
 }
 
@@ -60,11 +62,14 @@ export function ReportIssuePage() {
     lng: userLocation ? userLocation.lng : 80.2497,
     departmentId: "public-works",
     privacy: "anonymous",
+    citizenName: "",
+    citizenMobile: "",
   })
 
   // AI State
   const [aiState, setAiState] = useState<AIRequestState>("idle")
   const [aiErrorMsg, setAiErrorMsg] = useState<string>("")
+  const [citizenValidationErr, setCitizenValidationErr] = useState<string>("")
   const [submitState, setSubmitState] = useState<SubmissionState>("idle")
   const [createdComplaint, setCreatedComplaint] = useState<CivicIssue | null>(null)
   const [accessPin, setAccessPin] = useState<string>("8492")
@@ -154,6 +159,31 @@ export function ReportIssuePage() {
     e.preventDefault()
     if (submitState === "submitting") return
 
+    // Validate Verified Citizen Profile fields
+    if (form.privacy === "account") {
+      const cleanName = form.citizenName.trim()
+      const cleanMobile = form.citizenMobile.replace(/\D/g, "")
+
+      if (!cleanName || cleanName.length < 2) {
+        setCitizenValidationErr(
+          isTamil
+            ? "சரிபார்க்கப்பட்ட குடிமகன் சுயவிவரத்திற்கு உங்கள் முழு பெயரை உள்ளிடவும்."
+            : "Please enter your full name for the verified citizen profile."
+        )
+        return
+      }
+
+      if (!cleanMobile || cleanMobile.length !== 10) {
+        setCitizenValidationErr(
+          isTamil
+            ? "தயவுசெய்து சரியான 10 இலக்க மொபைல் எண்ணை உள்ளிடவும் (எ.கா: 9876543210)."
+            : "Please enter a valid 10-digit mobile number (e.g., 98765 43210)."
+        )
+        return
+      }
+    }
+    setCitizenValidationErr("")
+
     setSubmitState("submitting")
 
     try {
@@ -211,6 +241,12 @@ export function ReportIssuePage() {
         isFakeImage: form.aiAnalysis?.isFakeImage || false,
         fakeImageReason: form.aiAnalysis?.fakeImageReason,
         anonymous: form.privacy === "anonymous",
+        citizenName:
+          form.privacy === "account" ? form.citizenName.trim() : undefined,
+        citizenPhone:
+          form.privacy === "account"
+            ? form.citizenMobile.replace(/\D/g, "")
+            : undefined,
       }
 
       const created = await civicIssueService.createIssue(newIssue)
@@ -231,7 +267,7 @@ export function ReportIssuePage() {
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-amber-300 text-xs font-bold mb-2">
             <span>✨</span>
             <span>
-              {isTamil ? "Gemini AI பார்வை பகுப்பாய்வு இயங்குகிறது" : "Powered by Gemini Vision Intelligence"}
+              {isTamil ? "AI பார்வை பகுப்பாய்வு இயங்குகிறது" : "Powered by Civic AI Vision"}
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
@@ -286,12 +322,39 @@ export function ReportIssuePage() {
                   {isTamil ? createdComplaint.departmentTa : createdComplaint.department}
                 </span>
               </div>
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center pb-2 border-b border-gray-200">
                 <span className="text-gray-500 font-semibold">Location:</span>
                 <span className="font-medium text-gray-800 truncate max-w-[200px]">
                   {createdComplaint.district}, {createdComplaint.state}
                 </span>
               </div>
+              {/* Citizen Details */}
+              {!createdComplaint.anonymous && (createdComplaint.citizenName || createdComplaint.citizenPhone) ? (
+                <div className="flex justify-between items-center pt-0.5">
+                  <span className="text-gray-500 font-semibold">
+                    {isTamil ? "குடிமகன் விவரம்:" : "Citizen Profile:"}
+                  </span>
+                  <div className="text-right">
+                    <span className="font-bold text-emerald-800 flex items-center justify-end gap-1">
+                      <span>✓</span> {createdComplaint.citizenName || "Verified Citizen"}
+                    </span>
+                    {createdComplaint.citizenPhone && (
+                      <span className="font-mono text-[11px] text-gray-500 block">
+                        📱 +91 {createdComplaint.citizenPhone}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex justify-between items-center pt-0.5">
+                  <span className="text-gray-500 font-semibold">
+                    {isTamil ? "சுயவிவரம்:" : "Identity Mode:"}
+                  </span>
+                  <span className="font-bold text-gray-700 flex items-center gap-1">
+                    <span>🕶️</span> {isTamil ? "அநாமதேய சமர்ப்பிப்பு" : "Anonymous Submission"}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* PDF Generation and Action Buttons */}
@@ -346,19 +409,6 @@ export function ReportIssuePage() {
               />
 
               {/* AI Status Banners */}
-              {aiState === "analyzing" && (
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl text-xs text-blue-900 flex items-center gap-3 animate-pulse">
-                  <span className="text-xl">✨</span>
-                  <div>
-                    <strong className="block">
-                      {isTamil ? "Gemini AI புகைப்படத்தை ஆய்வு செய்கிறது..." : "Gemini Vision is inspecting photo..."}
-                    </strong>
-                    <span className="text-[11px] text-blue-700">
-                      Verifying authenticity, civic hazard classification, and department routing.
-                    </span>
-                  </div>
-                </div>
-              )}
 
               {aiState === "notCivicIssue" && (
                 <div className="p-4 bg-red-50 border-2 border-red-300 rounded-2xl text-xs text-red-900 flex items-start gap-3">
@@ -549,10 +599,13 @@ export function ReportIssuePage() {
               <div className="grid sm:grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => setForm((prev) => ({ ...prev, privacy: "anonymous" }))}
-                  className={`p-4 rounded-2xl border-2 text-left transition-all flex items-start gap-3 ${
+                  onClick={() => {
+                    setForm((prev) => ({ ...prev, privacy: "anonymous" }))
+                    setCitizenValidationErr("")
+                  }}
+                  className={`p-4 rounded-2xl border-2 text-left transition-all flex items-start gap-3 cursor-pointer ${
                     form.privacy === "anonymous"
-                      ? "border-[#1c3a6e] bg-blue-50/50 shadow-xs"
+                      ? "border-[#1c3a6e] bg-blue-50/50 shadow-xs ring-1 ring-[#1c3a6e]/20"
                       : "border-gray-200 hover:border-gray-300 bg-white"
                   }`}
                 >
@@ -571,17 +624,22 @@ export function ReportIssuePage() {
 
                 <button
                   type="button"
-                  onClick={() => setForm((prev) => ({ ...prev, privacy: "account" }))}
-                  className={`p-4 rounded-2xl border-2 text-left transition-all flex items-start gap-3 ${
+                  onClick={() => {
+                    setForm((prev) => ({ ...prev, privacy: "account" }))
+                  }}
+                  className={`p-4 rounded-2xl border-2 text-left transition-all flex items-start gap-3 cursor-pointer ${
                     form.privacy === "account"
-                      ? "border-[#1c3a6e] bg-blue-50/50 shadow-xs"
+                      ? "border-[#1c3a6e] bg-blue-50/50 shadow-xs ring-1 ring-[#1c3a6e]/20"
                       : "border-gray-200 hover:border-gray-300 bg-white"
                   }`}
                 >
                   <span className="text-2xl">👤</span>
                   <div>
-                    <div className="text-xs font-bold text-gray-900">
-                      {isTamil ? "குடிமகன் சுயவிவரம்" : "Verified Citizen Profile"}
+                    <div className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+                      <span>{isTamil ? "குடிமகன் சுயவிவரம்" : "Verified Citizen Profile"}</span>
+                      <span className="text-[9px] bg-emerald-100 text-emerald-800 font-extrabold px-1.5 py-0.2 rounded-sm uppercase tracking-wider">
+                        {isTamil ? "நேரலை SMS" : "SMS Alerts"}
+                      </span>
                     </div>
                     <p className="text-[11px] text-gray-500 mt-0.5">
                       {isTamil
@@ -591,6 +649,97 @@ export function ReportIssuePage() {
                   </div>
                 </button>
               </div>
+
+              {/* Verified Citizen Profile Details Input Form */}
+              {form.privacy === "account" && (
+                <div className="mt-4 pt-4 border-t border-gray-100 space-y-4 animate-fade-in bg-slate-50/90 p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-inner">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] flex items-center justify-center font-bold">
+                        ✓
+                      </span>
+                      <span className="text-xs font-extrabold text-gray-900">
+                        {isTamil
+                          ? "சரிபார்க்கப்பட்ட குடிமகன் தகவல்கள்"
+                          : "Verified Citizen Details"}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded-full font-bold border border-emerald-200">
+                      {isTamil ? "கட்டாய தகவல்கள்" : "Required for SMS Tracking"}
+                    </span>
+                  </div>
+
+                  {citizenValidationErr && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center gap-2">
+                      <span className="text-base">⚠️</span>
+                      <span className="font-semibold">{citizenValidationErr}</span>
+                    </div>
+                  )}
+
+                  <div className="grid sm:grid-cols-2 gap-3.5">
+                    {/* Citizen Full Name */}
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        {isTamil ? "முழு பெயர்" : "Full Name"}{" "}
+                        <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 text-sm">
+                          👤
+                        </span>
+                        <input
+                          type="text"
+                          required={form.privacy === "account"}
+                          value={form.citizenName}
+                          onChange={(e) => {
+                            setForm((prev) => ({ ...prev, citizenName: e.target.value }))
+                            if (citizenValidationErr) setCitizenValidationErr("")
+                          }}
+                          placeholder={
+                            isTamil ? "எ.கா. மு. கார்த்திகேயன்" : "e.g., Karthikeyan M"
+                          }
+                          className="w-full pl-9 pr-3.5 py-2.5 text-xs rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#1c3a6e] bg-white font-semibold placeholder:text-gray-400 placeholder:font-normal"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Citizen Mobile Number */}
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        {isTamil ? "மொபைல் எண்" : "Mobile Number"}{" "}
+                        <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative flex">
+                        <div className="inline-flex items-center px-3 rounded-l-xl border border-r-0 border-gray-300 bg-gray-100 text-gray-700 text-xs font-bold font-mono">
+                          🇮🇳 +91
+                        </div>
+                        <input
+                          type="tel"
+                          required={form.privacy === "account"}
+                          maxLength={10}
+                          value={form.citizenMobile}
+                          onChange={(e) => {
+                            const numericOnly = e.target.value.replace(/\D/g, "").slice(0, 10)
+                            setForm((prev) => ({ ...prev, citizenMobile: numericOnly }))
+                            if (citizenValidationErr) setCitizenValidationErr("")
+                          }}
+                          placeholder="98765 43210"
+                          className="w-full px-3.5 py-2.5 text-xs rounded-r-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#1c3a6e] bg-white font-mono font-semibold placeholder:text-gray-400 placeholder:font-normal"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2 pt-1 text-[11px] text-gray-500 leading-normal">
+                    <span className="text-emerald-600 text-xs mt-0.5">ℹ️</span>
+                    <p>
+                      {isTamil
+                        ? "உங்கள் மொபைல் எண்ணிற்கு புகார் நிலை, கள அதிகாரி ஒதுக்கீடு மற்றும் நேரடி தீர்வு புகைப்பட SMS அறிவிப்புகள் அனுப்பப்படும்."
+                        : "Official SMS notifications with complaint tracking ID, assigned officer details, and resolution proof will be dispatched to this number."}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Submit Action Button */}

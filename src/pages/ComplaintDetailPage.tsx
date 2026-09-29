@@ -7,6 +7,7 @@ import { CATEGORY_ICONS } from "../components/CategoryIcons"
 import { CivicMap } from "../components/CivicMap"
 import { civicIssueService } from "../services/civicIssueService.ts"
 import { generateCivicReportPDF } from "../services/pdfReportService.ts"
+import { getBeforeImage, getAfterImage } from "../utils/imageUtils.ts"
 import type { CivicIssue } from "../types/index.ts"
 
 
@@ -253,51 +254,47 @@ export function ComplaintDetailPage() {
         {/* Photographic Evidence: Before and After Comparison */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
           {/* Before Photo */}
-          <div className="bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden">
-            {complaint.imageUrl ? (
-              <img
-                src={complaint.imageUrl}
-                alt="Before Incident"
-                className="w-full h-52 object-cover"
-              />
-            ) : (
-              <div className="h-52 flex items-center justify-center text-gray-400 text-xs">
-                No initial photo attached
-              </div>
-            )}
+          <div className="bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden shadow-xs">
+            <img
+              src={getBeforeImage(complaint)}
+              alt="Before Incident"
+              className="w-full h-56 object-cover"
+            />
             <div className="p-2.5 bg-white border-t border-gray-200 flex items-center justify-between text-xs">
               <span className="font-bold text-red-700 flex items-center gap-1">
-                <span>📸</span> {isTamil ? "ஆரம்ப புகைப்படம் (Before)" : "Incident Photo (Before)"}
+                <span>📸</span> {isTamil ? "ஆரம்ப புகைப்படம் (BEFORE)" : "Incident Photo (BEFORE)"}
               </span>
-              <span className="text-[10px] text-gray-400 font-semibold">Citizen Upload</span>
+              <span className="text-[10px] text-gray-500 font-bold bg-gray-100 px-2 py-0.5 rounded">
+                Verified Site Evidence
+              </span>
             </div>
           </div>
 
           {/* After Photo Proof */}
-          <div className="bg-emerald-50/50 border border-emerald-200 rounded-2xl overflow-hidden">
-            {complaint.resolvedImageUrl ? (
+          <div className="bg-emerald-50/50 border border-emerald-200 rounded-2xl overflow-hidden shadow-xs">
+            {isResolved || complaint.resolvedImageUrl ? (
               <img
-                src={complaint.resolvedImageUrl}
+                src={getAfterImage(complaint)}
                 alt="After Resolution Proof"
-                className="w-full h-52 object-cover"
+                className="w-full h-56 object-cover"
               />
             ) : (
-              <div className="h-52 flex flex-col items-center justify-center text-gray-400 text-xs p-4 text-center">
-                <span className="text-2xl mb-1">⏳</span>
-                <span className="font-semibold text-gray-500">
+              <div className="h-56 flex flex-col items-center justify-center text-gray-400 text-xs p-4 text-center">
+                <span className="text-3xl mb-1.5">⏳</span>
+                <span className="font-bold text-gray-700 text-sm">
                   {isTamil ? "கள ஆய்வு & தீர்வு செயல்பாட்டில் உள்ளது" : "Resolution Work in Progress"}
                 </span>
-                <span className="text-[10px] text-gray-400 mt-1">
-                  After photo will appear once field officer completes site repair.
+                <span className="text-[11px] text-gray-500 mt-1 max-w-xs leading-relaxed">
+                  After photo proof will be uploaded once field officer completes repair on site.
                 </span>
               </div>
             )}
             <div className="p-2.5 bg-white border-t border-emerald-200 flex items-center justify-between text-xs">
               <span className="font-bold text-emerald-700 flex items-center gap-1">
-                <span>✓</span> {isTamil ? "தீர்வு ஆதாரம் (After Photo)" : "Resolution Proof (After)"}
+                <span>✓</span> {isTamil ? "தீர்வு ஆதாரம் (AFTER PHOTO)" : "Resolution Proof (AFTER)"}
               </span>
-              <span className="text-[10px] text-emerald-600 font-bold">
-                {complaint.status === "resolved" ? "Officer Verified" : "Pending"}
+              <span className="text-[10px] text-emerald-700 font-extrabold bg-emerald-100 px-2 py-0.5 rounded">
+                {isResolved ? "Officer Verified" : "Pending Verification"}
               </span>
             </div>
           </div>
@@ -351,6 +348,30 @@ export function ComplaintDetailPage() {
                 <dt className="text-gray-500 font-medium">{tr.complaint.category}</dt>
                 <dd className="font-bold text-gray-900 text-right">
                   {tr.services[complaint.category]?.name || complaint.category}
+                </dd>
+              </div>
+
+              <div className="flex justify-between py-2 border-b border-gray-100 items-start">
+                <dt className="text-gray-500 font-medium">
+                  {isTamil ? "புகார்தாரர் விவரம்" : "Reported By"}
+                </dt>
+                <dd className="font-bold text-gray-900 text-right">
+                  {complaint.anonymous ? (
+                    <span className="inline-flex items-center gap-1 text-gray-600 bg-gray-100 px-2 py-0.5 rounded-md font-semibold text-[11px]">
+                      <span>🕶️</span> {isTamil ? "அநாமதேய குடிமகன்" : "Anonymous Citizen"}
+                    </span>
+                  ) : (
+                    <div className="space-y-0.5">
+                      <span className="inline-flex items-center gap-1 text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md font-bold text-[11px]">
+                        <span>✓</span> {complaint.citizenName || (isTamil ? "சரிபார்க்கப்பட்ட குடிமகன்" : "Verified Citizen")}
+                      </span>
+                      {(complaint.citizenPhone || complaint.citizenMobile) && (
+                        <div className="text-[11px] font-mono text-gray-500">
+                          📱 +91 {complaint.citizenPhone || complaint.citizenMobile}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </dd>
               </div>
 

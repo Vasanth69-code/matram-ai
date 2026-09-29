@@ -67,8 +67,8 @@ export function AIAnalysisCard({
           }`}
         >
           {isTamil
-            ? "Gemini AI மூலம் புகைப்படம் மற்றும் இருப்பிடம் பகுப்பாய்வு செய்யப்படுகிறது..."
-            : "Analyzing Image with Gemini Vision AI..."}
+            ? "AI மூலம் புகைப்படம் மற்றும் இருப்பிடம் பகுப்பாய்வு செய்யப்படுகிறது..."
+            : "Analyzing Image with Civic AI Vision..."}
         </h3>
         <p
           className={`text-xs text-[#64748b] max-w-sm mx-auto leading-relaxed ${
@@ -329,7 +329,7 @@ export function AIAnalysisCard({
               >
                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
               </svg>
-              <span>Gemini AI Analysis</span>
+              <span>Civic AI Analysis</span>
             </span>
 
             {/* Authenticity Verification Badge */}

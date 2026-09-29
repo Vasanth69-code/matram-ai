@@ -3,6 +3,7 @@ import { useApp } from "../contexts/AppContext"
 import { DEPARTMENTS, OFFICERS } from "../data/civicData"
 import { civicIssueService } from "../services/civicIssueService"
 import { generateCivicReportPDF } from "../services/pdfReportService"
+import { getBeforeImage } from "../utils/imageUtils"
 import { StatusBadge, PriorityBadge, SLABadge } from "../components/StatusBadge"
 import { CivicMap } from "../components/CivicMap"
 import type { CivicIssue, DepartmentId, ComplaintStatus } from "../types"
@@ -229,17 +230,11 @@ export function DepartmentDashboardPage() {
                           {issue.id}
                         </td>
                         <td className="px-4 py-3">
-                          {issue.imageUrl ? (
-                            <img
-                              src={issue.imageUrl}
-                              alt="Incident"
-                              className="w-10 h-10 object-cover rounded-lg border border-gray-200"
-                            />
-                          ) : (
-                            <span className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 text-xs">
-                              📷
-                            </span>
-                          )}
+                          <img
+                            src={getBeforeImage(issue)}
+                            alt="Incident"
+                            className="w-10 h-10 object-cover rounded-lg border border-gray-200 shadow-xs"
+                          />
                         </td>
                         <td className="px-4 py-3 font-bold text-gray-900 max-w-[200px] truncate">
                           {isTamil && issue.titleTa ? issue.titleTa : issue.title}

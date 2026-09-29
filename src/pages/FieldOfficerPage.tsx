@@ -4,6 +4,7 @@ import { t } from "../i18n/translations"
 import { OFFICERS } from "../data/civicData"
 import { civicIssueService } from "../services/civicIssueService"
 import { generateCivicReportPDF } from "../services/pdfReportService"
+import { getBeforeImage, getAfterImage } from "../utils/imageUtils"
 import { StatusBadge, PriorityBadge, SLABadge } from "../components/StatusBadge"
 import { CATEGORY_ICONS } from "../components/CategoryIcons"
 import type { CivicIssue } from "../types"
@@ -124,7 +125,41 @@ export function FieldOfficerPage() {
             📍 {activeComplaint.address} · {activeComplaint.district}
           </div>
 
-          <div className="flex gap-2 flex-wrap">
+          {/* Citizen Reporter Information */}
+          <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-xs">
+            <span className="text-gray-500 font-semibold text-[11px]">
+              {isTamil ? "புகார்தாரர்:" : "Citizen Reporter:"}
+            </span>
+            {activeComplaint.anonymous ? (
+              <span className="text-gray-600 bg-gray-100 px-2 py-0.5 rounded text-[11px] font-semibold">
+                🕶️ {isTamil ? "அநாமதேய புகார்" : "Anonymous"}
+              </span>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-emerald-800 text-[11px] flex items-center gap-1">
+                  <span>✓</span> {activeComplaint.citizenName || "Verified Citizen"}
+                </span>
+                {(activeComplaint.citizenPhone || activeComplaint.citizenMobile) && (
+                  <div className="flex items-center gap-1">
+                    <a
+                      href={`tel:+91${activeComplaint.citizenPhone || activeComplaint.citizenMobile}`}
+                      className="px-2 py-0.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-[10px] font-bold rounded"
+                    >
+                      📞 Call
+                    </a>
+                    <a
+                      href={`sms:+91${activeComplaint.citizenPhone || activeComplaint.citizenMobile}?body=${encodeURIComponent(`Update on Complaint ${activeComplaint.id}: Officer assigned.`)}`}
+                      className="px-2 py-0.5 bg-blue-100 hover:bg-blue-200 text-blue-800 text-[10px] font-bold rounded"
+                    >
+                      📱 SMS
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-2 flex-wrap pt-1">
             <StatusBadge status={activeComplaint.status} lang={lang} size="sm" />
             <PriorityBadge priority={activeComplaint.priority} lang={lang} size="sm" />
             <SLABadge
@@ -142,22 +177,17 @@ export function FieldOfficerPage() {
             📸 1. Initial Incident Photo (Before)
           </h3>
 
-          {activeComplaint.imageUrl ? (
-            <div className="rounded-2xl overflow-hidden border border-gray-200">
-              <img
-                src={activeComplaint.imageUrl}
-                alt="Before photo"
-                className="w-full h-44 object-cover"
-              />
-              <div className="p-2 bg-gray-50 text-[10px] text-gray-500 font-semibold text-center border-t border-gray-100">
-                Uploaded by citizen at complaint submission
-              </div>
+          <div className="rounded-2xl overflow-hidden border border-gray-200 shadow-xs">
+            <img
+              src={getBeforeImage(activeComplaint)}
+              alt="Before photo"
+              className="w-full h-48 object-cover"
+            />
+            <div className="p-2 bg-gray-50 text-[10px] text-gray-600 font-bold text-center border-t border-gray-100 flex items-center justify-between px-3">
+              <span>📸 Citizen Incident Evidence</span>
+              <span className="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded font-extrabold">Verified</span>
             </div>
-          ) : (
-            <div className="h-28 bg-gray-50 rounded-2xl flex items-center justify-center text-xs text-gray-400 border border-gray-200">
-              No initial photo provided
-            </div>
-          )}
+          </div>
         </div>
 
         {/* Resolution Workflow */}

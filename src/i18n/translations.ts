@@ -1085,7 +1085,7 @@ export const t: { en: TranslationSchema; ta: TranslationSchema } = {
       selectPhotoPrompt:
         "Start by uploading or capturing a photo of the civic issue",
       aiAnalyzeNote:
-        "Your photo will be securely analyzed by CivicAI using Gemini 2.5 Flash to identify category, hazard level, and municipal routing.",
+        "Your photo will be securely analyzed by CivicAI to identify category, hazard level, and municipal routing.",
       uploadImage: "Upload Image",
       captureImage: "Capture Image",
       supportedFormats: "Supported formats: JPG, PNG, WEBP (Max 10MB)",
@@ -1125,7 +1125,7 @@ export const t: { en: TranslationSchema; ta: TranslationSchema } = {
       continueWithDescription: "Continue with Description",
       validatingImage: "Validating image integrity...",
       uploadingImage: "Optimizing and preparing image...",
-      analyzingWithGemini: "Analyzing with Gemini 2.5 Flash...",
+      analyzingWithGemini: "Analyzing photo with CivicAI...",
       processingDesc:
         "Evaluating visual damage, hazard level, and municipal jurisdiction.",
       timeoutTitle: "AI Analysis Timed Out",
@@ -1697,7 +1697,7 @@ export const t: { en: TranslationSchema; ta: TranslationSchema } = {
       selectPhotoPrompt:
         "குடிமைப் பிரச்சினையின் புகைப்படத்தைப் பதிவேற்றவும் அல்லது எடுக்கவும்",
       aiAnalyzeNote:
-        "உங்கள் புகைப்படம் CivicAI (Gemini 2.5 Flash) மூலம் பகுப்பாய்வு செய்யப்பட்டு வகை, தீவிரம் மற்றும் துறை பரிந்துரைக்கப்படும்.",
+        "உங்கள் புகைப்படம் CivicAI மூலம் பகுப்பாய்வு செய்யப்பட்டு வகை, தீவிரம் மற்றும் துறை பரிந்துரைக்கப்படும்.",
       uploadImage: "புகைப்படம் பதிவேற்றுக",
       captureImage: "புகைப்படம் எடுக்கவும்",
       supportedFormats: "ஆதரிக்கப்படுபவை: JPG, PNG, WEBP (அதிகபட்சம் 10MB)",
@@ -1736,7 +1736,7 @@ export const t: { en: TranslationSchema; ta: TranslationSchema } = {
       continueWithDescription: "விவரத்துடன் தொடரவும்",
       validatingImage: "படத்தை சரிபார்க்கிறது...",
       uploadingImage: "படத்தை மேம்படுத்துகிறது...",
-      analyzingWithGemini: "Gemini 2.5 Flash மூலம் பகுப்பாய்வு செய்கிறது...",
+      analyzingWithGemini: "CivicAI மூலம் பகுப்பாய்வு செய்கிறது...",
       processingDesc:
         "குடிமைச் சேதம், தீவிரம் மற்றும் துறை விதிகளை பகுப்பாய்வு செய்கிறது.",
       timeoutTitle: "பகுப்பாய்வு நேரம் கடந்துவிட்டது",

@@ -76,6 +76,8 @@ export const INITIAL_CIVIC_ISSUES: CivicIssue[] = [
       },
     ],
     anonymous: false,
+    citizenName: "Karthikeyan M.",
+    citizenPhone: "9840123456",
     submittedAt: "2026-08-08T09:14:00",
     updatedAt: "2026-08-10T14:32:00",
     timeline: [

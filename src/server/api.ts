@@ -56,6 +56,8 @@ function persistUserVotes(votes: Record<string, "up" | "down">) {
 
 let inMemoryUserVotes: Record<string, "up" | "down"> = getUserVotes()
 
+const API_BASE_URL = (import.meta as any).env?.VITE_BACKEND_URL || "http://localhost:5000"
+
 /**
  * Retrieves issues matching spatial viewport and attribute filters
  */
@@ -72,6 +74,41 @@ export async function getIssues(params: {
   search?: string
   limit?: number
 }): Promise<CivicIssue[]> {
+  // Try fetching live from Backend API connected to MongoDB Atlas
+  try {
+    const queryParams = new URLSearchParams()
+    if (params.category) queryParams.set("category", params.category)
+    if (params.severity) queryParams.set("severity", params.severity)
+    if (params.status) queryParams.set("status", params.status)
+    if (params.state) queryParams.set("state", params.state)
+    if (params.district) queryParams.set("district", params.district)
+    if (params.search) queryParams.set("search", params.search)
+    if (params.limit) queryParams.set("limit", params.limit.toString())
+
+    const res = await fetch(`${API_BASE_URL}/api/issues?${queryParams.toString()}`, {
+      headers: { "Content-Type": "application/json" },
+    })
+
+    if (res.ok) {
+      const data = await res.json()
+      if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+        // Merge backend list with any local un-synced items
+        const existingIds = new Set(data.data.map((i: CivicIssue) => i.id))
+        const localOnly = inMemoryIssues.filter((i) => !existingIds.has(i.id))
+        inMemoryIssues = [...data.data, ...localOnly]
+        persistIssues()
+
+        const userVotes = getUserVotes()
+        return inMemoryIssues.map((issue: CivicIssue) => ({
+          ...issue,
+          userVote: userVotes[issue.id] || null,
+        }))
+      }
+    }
+  } catch {
+    // API server unreachable - fall through to in-memory fallback
+  }
+
   const userVotes = getUserVotes()
 
   let filtered = inMemoryIssues.map((issue) => ({
@@ -99,11 +136,10 @@ export async function getIssues(params: {
     filtered = filtered.filter(
       (i) =>
         i.title.toLowerCase().includes(q) ||
-        i.titleTa.toLowerCase().includes(q) ||
+        (i.titleTa && i.titleTa.toLowerCase().includes(q)) ||
         i.description.toLowerCase().includes(q) ||
         i.address.toLowerCase().includes(q) ||
-        i.department.toLowerCase().includes(q) ||
-        (i.tags && i.tags.some((t) => t.toLowerCase().includes(q))),
+        i.department.toLowerCase().includes(q),
     )
   }
 
@@ -222,6 +258,8 @@ export async function createIssue(
     fakeImageReason: issueData.fakeImageReason,
     comments: [],
     anonymous: !!issueData.anonymous,
+    citizenName: issueData.anonymous ? undefined : (issueData.citizenName || undefined),
+    citizenPhone: issueData.anonymous ? undefined : (issueData.citizenPhone || issueData.citizenMobile || undefined),
     submittedAt: now.toISOString(),
     updatedAt: now.toISOString(),
     timeline: [
@@ -270,6 +308,25 @@ export async function createIssue(
     ],
   }
 
+  // Persist to Express Backend & MongoDB Atlas
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/issues`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newIssue),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      if (data.success && data.data) {
+        inMemoryIssues = [data.data, ...inMemoryIssues]
+        persistIssues()
+        return data.data
+      }
+    }
+  } catch {
+    // API server unreachable fallback
+  }
+
   inMemoryIssues = [newIssue, ...inMemoryIssues]
   persistIssues()
   return newIssue
@@ -282,18 +339,34 @@ export async function upvoteIssue(
   issueId: string,
   isReport: boolean = false,
 ): Promise<CivicIssue | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/issues/${issueId}/vote`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ direction: "up" }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      if (data.success && data.data) {
+        inMemoryUserVotes[issueId] = "up"
+        persistUserVotes(inMemoryUserVotes)
+        return data.data
+      }
+    }
+  } catch {
+    // fallback
+  }
+
   const found = inMemoryIssues.find((i) => i.id === issueId)
   if (!found) return null
 
   const currentVote = inMemoryUserVotes[issueId]
 
   if (currentVote === "up") {
-    // Remove upvote
     found.upvotes = Math.max(0, (found.upvotes || 0) - 1)
     found.supportersCount = Math.max(0, (found.supportersCount || 0) - 1)
     delete inMemoryUserVotes[issueId]
   } else {
-    // Add upvote
     found.upvotes = (found.upvotes || 0) + 1
     found.supportersCount = (found.supportersCount || 0) + 1
     if (currentVote === "down") {
@@ -323,11 +396,9 @@ export async function downvoteIssue(
   const currentVote = inMemoryUserVotes[issueId]
 
   if (currentVote === "down") {
-    // Remove downvote
     found.downvotes = Math.max(0, (found.downvotes || 0) - 1)
     delete inMemoryUserVotes[issueId]
   } else {
-    // Add downvote
     found.downvotes = (found.downvotes || 0) + 1
     if (currentVote === "up") {
       found.upvotes = Math.max(0, (found.upvotes || 0) - 1)
@@ -359,6 +430,22 @@ export async function addCommentToIssue(
     createdAt: new Date().toISOString(),
   }
 
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/issues/${issueId}/comments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userName, text }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      if (data.success && data.data) {
+        return data.data
+      }
+    }
+  } catch {
+    // fallback
+  }
+
   const found = inMemoryIssues.find((i) => i.id === issueId)
   if (found) {
     found.comments = [...(found.comments || []), comment]
@@ -383,7 +470,7 @@ export async function getTransparencyStats(): Promise<{
   byDistrict: Record<string, number>
   byState: Record<string, number>
 }> {
-  const issues = inMemoryIssues
+  const issues = await getIssues({ limit: 1000 })
 
   const total = issues.length
   const resolved = issues.filter((i) => i.status === "resolved").length
@@ -465,6 +552,22 @@ export async function resolveIssueWithProof(
   notes?: string,
   officerName?: string,
 ): Promise<CivicIssue | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/issues/${issueId}/resolve`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ afterImageUrl, notes, officerName }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      if (data.success && data.data) {
+        return data.data
+      }
+    }
+  } catch {
+    // fallback
+  }
+
   const found = inMemoryIssues.find((i) => i.id === issueId)
   if (!found) return null
 
@@ -482,18 +585,20 @@ export async function resolveIssueWithProof(
   }
 
   // Update timeline for resolution
-  found.timeline.forEach((event) => {
-    if (["submitted", "ai_analysis", "assigned", "accepted", "in_progress", "verification", "resolved"].includes(event.status)) {
-      event.done = true
-      event.active = false
-      if (event.status === "resolved") {
-        event.timestamp = now
-        event.active = true
-        event.note = notes || "Resolved with verified work proof photo"
-        event.noteTa = "சரிபார்க்கப்பட்ட புகைப்பட ஆதாரத்துடன் தீர்க்கப்பட்டது"
+  if (found.timeline && Array.isArray(found.timeline)) {
+    found.timeline.forEach((event) => {
+      if (["submitted", "ai_analysis", "assigned", "accepted", "in_progress", "verification", "resolved"].includes(event.status)) {
+        event.done = true
+        event.active = false
+        if (event.status === "resolved") {
+          event.timestamp = now
+          event.active = true
+          event.note = notes || "Resolved with verified work proof photo"
+          event.noteTa = "சரிபார்க்கப்பட்ட புகைப்பட ஆதாரத்துடன் தீர்க்கப்பட்டது"
+        }
       }
-    }
-  })
+    })
+  }
 
   persistIssues()
   return found
