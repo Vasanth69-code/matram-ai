@@ -1,7 +1,7 @@
 {
   "name": "civic-ai",
   "private": true,
-
+  "packageManager": "npm@11.6.1",
   "version": "1.0.0",
   "type": "module",
   "scripts": {
