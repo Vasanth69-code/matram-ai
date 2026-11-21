@@ -23,6 +23,8 @@ interface ReportFormData {
   imageSizeBytes: number
   aiAnalysis: CombinedAIAnalysisResult | null
   category: Category
+  severity: Priority
+  isSeverityManual: boolean
   title: string
   titleTa: string
   description: string
@@ -51,6 +53,8 @@ export function ReportIssuePage() {
     imageSizeBytes: 0,
     aiAnalysis: null,
     category: "road",
+    severity: "medium",
+    isSeverityManual: false,
     title: "",
     titleTa: "",
     description: "",
@@ -74,6 +78,29 @@ export function ReportIssuePage() {
   const [createdComplaint, setCreatedComplaint] = useState<CivicIssue | null>(null)
   const [accessPin, setAccessPin] = useState<string>("8492")
 
+  // Handle Manual Severity Selection by Citizen
+  const handleSeveritySelect = (newSeverity: Priority) => {
+    setForm((prev) => {
+      const routing = determineDepartmentRouting({
+        category: prev.category,
+        severity: newSeverity,
+        location: {
+          state: prev.state,
+          district: prev.district,
+        },
+        aiSuggestedDepartment: prev.aiAnalysis?.suggestedDepartment,
+      })
+
+      return {
+        ...prev,
+        severity: newSeverity,
+        isSeverityManual: true,
+        departmentId: routing.departmentId || prev.departmentId,
+        routingInfo: routing,
+      }
+    })
+  }
+
   // Analyze Image with Gemini Vision Intelligence
   const handleAnalyzeImage = async (photoUri: string, mime: string, size: number) => {
     setAiState("analyzing")
@@ -91,30 +118,35 @@ export function ReportIssuePage() {
       if (response.success && response.data) {
         const data = response.data
         const mappedCat = (data.categoryKey || "road") as Category
+        const predictedSeverity = (data.severity as Priority) || "medium"
 
-        // Auto-determine routing to one of 9 departments
-        const routing = determineDepartmentRouting({
-          category: mappedCat,
-          severity: (data.severity as Priority) || "medium",
-          location: {
-            state: form.state,
-            district: form.district,
-          },
-          aiSuggestedDepartment: data.suggestedDepartment,
+        setForm((prev) => {
+          const chosenSeverity = prev.isSeverityManual ? prev.severity : predictedSeverity
+
+          const routing = determineDepartmentRouting({
+            category: mappedCat,
+            severity: chosenSeverity,
+            location: {
+              state: prev.state,
+              district: prev.district,
+            },
+            aiSuggestedDepartment: data.suggestedDepartment,
+          })
+
+          return {
+            ...prev,
+            aiAnalysis: data,
+            category: mappedCat,
+            severity: chosenSeverity,
+            title: data.smartTitle || data.detectedEntity || "Reported Civic Issue",
+            titleTa:
+              data.smartTitleTa || data.detectedEntityTa || "பதிவு செய்யப்பட்ட குடிமைப் பிரச்சினை",
+            description: data.smartDescription || prev.description,
+            descriptionTa: data.smartDescriptionTa || prev.descriptionTa,
+            departmentId: routing.departmentId || "public-works",
+            routingInfo: routing,
+          }
         })
-
-        setForm((prev) => ({
-          ...prev,
-          aiAnalysis: data,
-          category: mappedCat,
-          title: data.smartTitle || data.detectedEntity || "Reported Civic Issue",
-          titleTa:
-            data.smartTitleTa || data.detectedEntityTa || "பதிவு செய்யப்பட்ட குடிமைப் பிரச்சினை",
-          description: data.smartDescription || prev.description,
-          descriptionTa: data.smartDescriptionTa || prev.descriptionTa,
-          departmentId: routing.departmentId || "public-works",
-          routingInfo: routing,
-        }))
 
         if (!data.isCivicIssue) {
           setAiState("notCivicIssue")
@@ -205,7 +237,7 @@ export function ReportIssuePage() {
           form.descriptionTa ||
           form.aiAnalysis?.smartDescriptionTa ||
           "நேரலை தளம் மூலம் பதிவு செய்யப்பட்ட புகார்.",
-        priority: (form.aiAnalysis?.severity as Priority) || "medium",
+        priority: form.severity,
         imageUrl: form.imageUri || undefined,
         lat: form.lat,
         lng: form.lng,
@@ -314,6 +346,24 @@ export function ReportIssuePage() {
                 <span className="text-gray-500 font-semibold">Security PIN:</span>
                 <span className="font-mono font-bold text-sm text-amber-700 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200">
                   {accessPin}
+                </span>
+              </div>
+              <div className="flex justify-between items-center pb-2 border-b border-gray-200">
+                <span className="text-gray-500 font-semibold">
+                  {isTamil ? "மதிப்பிடப்பட்ட தீவிரம்:" : "Assessed Severity:"}
+                </span>
+                <span
+                  className={`font-extrabold text-xs uppercase px-2.5 py-0.5 rounded-md border ${
+                    createdComplaint.priority === "critical"
+                      ? "bg-red-100 text-red-800 border-red-300"
+                      : createdComplaint.priority === "high"
+                      ? "bg-orange-100 text-orange-800 border-orange-300"
+                      : createdComplaint.priority === "medium"
+                      ? "bg-amber-100 text-amber-800 border-amber-300"
+                      : "bg-emerald-100 text-emerald-800 border-emerald-300"
+                  }`}
+                >
+                  {createdComplaint.priority || "medium"}
                 </span>
               </div>
               <div className="flex justify-between items-center pb-2 border-b border-gray-200">
@@ -509,11 +559,158 @@ export function ReportIssuePage() {
               </div>
             </div>
 
-            {/* Section 2: Live Browser Location */}
+            {/* Section 2: Hazard Severity & Priority Selection */}
+            <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 space-y-4">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                  <span className="w-6 h-6 rounded-full bg-[#1c3a6e] text-white text-xs flex items-center justify-center font-black">
+                    2
+                  </span>
+                  <span>{isTamil ? "பிரச்சினையின் தீவிரம் & அவசர நிலை" : "Hazard Severity & Urgency"}</span>
+                </div>
+
+                {form.aiAnalysis ? (
+                  form.isSeverityManual ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-full border border-purple-200">
+                      <span>✏️</span>
+                      <span>
+                        {isTamil
+                          ? `கைமுறையாக மாற்றப்பட்டது (AI: ${form.aiAnalysis.severity})`
+                          : `Citizen Adjusted (AI: ${form.aiAnalysis.severity})`}
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                      <span>✨</span>
+                      <span>{isTamil ? "AI கணக்கிட்ட தீவிரம்" : "AI Predicted Severity"}</span>
+                    </span>
+                  )
+                ) : (
+                  <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full">
+                    {isTamil ? "தேர்வு செய்க" : "Select Severity"}
+                  </span>
+                )}
+              </div>
+
+              {/* AI Prediction Notice & Rationale Banner */}
+              {form.aiAnalysis && (
+                <div className="p-3.5 bg-blue-50/70 border border-blue-200 rounded-2xl text-xs space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 font-bold text-[#1c3a6e]">
+                      <span>🤖</span>
+                      <span>
+                        {isTamil
+                          ? `AI பரிந்துரைத்த தீவிரம்: ${form.aiAnalysis.severity.toUpperCase()}`
+                          : `Civic AI Vision Assessment: ${form.aiAnalysis.severity.toUpperCase()}`}
+                      </span>
+                    </div>
+                    {form.isSeverityManual && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (form.aiAnalysis) {
+                            handleSeveritySelect(form.aiAnalysis.severity as Priority)
+                            setForm((prev) => ({ ...prev, isSeverityManual: false }))
+                          }
+                        }}
+                        className="text-[10px] font-bold text-blue-700 hover:text-blue-900 underline"
+                      >
+                        {isTamil ? "AI மதிப்பீட்டிற்கு திரும்பு" : "Reset to AI Prediction"}
+                      </button>
+                    )}
+                  </div>
+                  {(form.aiAnalysis.severityReason || form.aiAnalysis.severityReasonTa) && (
+                    <p className="text-[11px] text-blue-900/80 leading-relaxed italic">
+                      "{isTamil && form.aiAnalysis.severityReasonTa ? form.aiAnalysis.severityReasonTa : form.aiAnalysis.severityReason}"
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Interactive Severity Selector Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                {[
+                  {
+                    id: "low",
+                    label: isTamil ? "சிறியது" : "Low",
+                    desc: isTamil ? "சிறிய பராமரிப்பு தேவை" : "Minor, non-urgent issue",
+                    icon: "🟢",
+                    bgActive: "bg-emerald-50 border-emerald-500 text-emerald-950 ring-2 ring-emerald-400/30",
+                    badgeBg: "bg-emerald-600 text-white",
+                  },
+                  {
+                    id: "medium",
+                    label: isTamil ? "நடுத்தர" : "Medium",
+                    desc: isTamil ? "வழக்கமான சீரமைப்பு" : "Standard municipal repair",
+                    icon: "🟡",
+                    bgActive: "bg-amber-50 border-amber-500 text-amber-950 ring-2 ring-amber-400/30",
+                    badgeBg: "bg-amber-600 text-white",
+                  },
+                  {
+                    id: "high",
+                    label: isTamil ? "உயர்" : "High",
+                    desc: isTamil ? "போக்குவரத்து / பாதுகாப்பு பாதிப்பு" : "Significant hazard / risk",
+                    icon: "🟠",
+                    bgActive: "bg-orange-50 border-orange-500 text-orange-950 ring-2 ring-orange-400/30",
+                    badgeBg: "bg-orange-600 text-white",
+                  },
+                  {
+                    id: "critical",
+                    label: isTamil ? "அவசரம்" : "Critical",
+                    desc: isTamil ? "உடனடி உயிர் ஆபத்து / பேரழிவு" : "Immediate life hazard / emergency",
+                    icon: "🔴",
+                    bgActive: "bg-red-50 border-red-500 text-red-950 ring-2 ring-red-400/30",
+                    badgeBg: "bg-red-600 text-white",
+                  },
+                ].map((sev) => {
+                  const isSelected = form.severity === sev.id
+                  const isAiChoice = form.aiAnalysis?.severity === sev.id
+
+                  return (
+                    <button
+                      key={sev.id}
+                      type="button"
+                      onClick={() => handleSeveritySelect(sev.id as Priority)}
+                      className={`p-3 rounded-2xl border-2 text-left transition-all relative flex flex-col justify-between cursor-pointer ${
+                        isSelected
+                          ? sev.bgActive
+                          : "border-gray-200 hover:border-gray-300 bg-white"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xl">{sev.icon}</span>
+                        <div className="flex items-center gap-1">
+                          {isAiChoice && (
+                            <span className="text-[9px] font-extrabold bg-blue-100 text-blue-800 px-1.5 py-0.2 rounded-md uppercase" title="AI Predicted">
+                              AI
+                            </span>
+                          )}
+                          {isSelected && (
+                            <span className={`text-[10px] font-black px-1.5 py-0.2 rounded-full ${sev.badgeBg}`}>
+                              ✓
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="font-extrabold text-xs text-gray-900 flex items-center gap-1">
+                          <span>{sev.label}</span>
+                        </div>
+                        <p className="text-[10px] text-gray-500 mt-0.5 leading-tight">
+                          {sev.desc}
+                        </p>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Section 3: Live Browser Location */}
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 space-y-4">
               <div className="flex items-center gap-2 text-sm font-bold text-gray-900 border-b border-gray-100 pb-3">
                 <span className="w-6 h-6 rounded-full bg-[#1c3a6e] text-white text-xs flex items-center justify-center font-black">
-                  2
+                  3
                 </span>
                 <span>{isTamil ? "நேரலை உலாவி இருப்பிடம்" : "Live Browser Location"}</span>
               </div>
@@ -537,12 +734,12 @@ export function ReportIssuePage() {
               />
             </div>
 
-            {/* Section 3: Administrative Department Selector */}
+            {/* Section 4: Administrative Department Selector */}
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 space-y-4">
               <div className="flex items-center justify-between text-sm font-bold text-gray-900 border-b border-gray-100 pb-3">
                 <div className="flex items-center gap-2">
                   <span className="w-6 h-6 rounded-full bg-[#1c3a6e] text-white text-xs flex items-center justify-center font-black">
-                    3
+                    4
                   </span>
                   <span>{isTamil ? "ஒதுக்கப்படும் நிர்வாகத் துறை" : "Selected Administrative Department"}</span>
                 </div>
@@ -587,11 +784,11 @@ export function ReportIssuePage() {
               </div>
             </div>
 
-            {/* Section 4: Privacy Profile Selection */}
+            {/* Section 5: Privacy Profile Selection */}
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200 space-y-4">
               <div className="flex items-center gap-2 text-sm font-bold text-gray-900 border-b border-gray-100 pb-3">
                 <span className="w-6 h-6 rounded-full bg-[#1c3a6e] text-white text-xs flex items-center justify-center font-black">
-                  4
+                  5
                 </span>
                 <span>{isTamil ? "சுயவிவர விருப்பத்தேர்வு" : "Identity & Privacy"}</span>
               </div>

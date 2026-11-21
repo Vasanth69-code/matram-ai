@@ -56,7 +56,9 @@ function persistUserVotes(votes: Record<string, "up" | "down">) {
 
 let inMemoryUserVotes: Record<string, "up" | "down"> = getUserVotes()
 
-const API_BASE_URL = (import.meta as any).env?.VITE_BACKEND_URL || "http://localhost:5000"
+const API_BASE_URL =
+  (import.meta as any).env?.VITE_BACKEND_URL ||
+  ((import.meta as any).env?.DEV ? "http://localhost:5000" : "")
 
 /**
  * Retrieves issues matching spatial viewport and attribute filters

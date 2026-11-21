@@ -116,6 +116,23 @@ export function determineDepartmentRouting(
       break
   }
 
+  // Location-aware departmental enrichment
+  const localBody = location.localBody ? location.localBody.trim() : ""
+
+  if (category === "water" || category === "drainage") {
+    if (district.toLowerCase().includes("chennai")) {
+      finalDeptEn = "CMWSSB [Water Department & Drainage]"
+      finalDeptTa = "சென்னை பெருநகர குடிநீர் வழங்கல் மற்றும் கழிவுநீரேற்ற வாரியம் (CMWSSB)"
+    } else if (district.toLowerCase().includes("bengaluru") || district.toLowerCase().includes("bangalore")) {
+      finalDeptEn = "BWSSB [Water Department & Drainage]"
+      finalDeptTa = "பெங்களூரு நீர் வழங்கல் மற்றும் கழிவுநீர் வாரியம் (BWSSB)"
+    } else if (localBody) {
+      finalDeptEn = `${localBody} [Water Department & Drainage]`
+    }
+  } else if (localBody) {
+    finalDeptEn = `${localBody} [${finalDeptEn}]`
+  }
+
   return {
     suggestedDepartment: finalDeptEn,
     suggestedDepartmentTa: finalDeptTa,
