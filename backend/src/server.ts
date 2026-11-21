@@ -9,7 +9,7 @@ import { seedDatabase } from "./seed.js"
 dotenv.config()
 
 const app = express()
-const PORT = process.env.PORT || 5000
+const PORT = Number(process.env.PORT) || 5000
 
 // Middleware
 app.use(cors({ origin: "*" }))
@@ -67,8 +67,8 @@ async function startServer() {
     }
   }
 
-  const server = app.listen(PORT, () => {
-    console.log(`🚀 Express Backend Server running on http://localhost:${PORT}`)
+  const server = app.listen(PORT, "0.0.0.0", () => {
+    console.log(`🚀 Express Backend Server running on http://0.0.0.0:${PORT}`)
   })
 
   server.on("error", (err: any) => {
