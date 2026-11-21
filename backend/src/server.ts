@@ -1,6 +1,7 @@
 import express from "express"
 import cors from "cors"
 import dotenv from "dotenv"
+import mongoose from "mongoose"
 import { connectMongoDB } from "./config/db.js"
 import { issuesRouter } from "./routes/issues.js"
 import { seedDatabase } from "./seed.js"
@@ -15,20 +16,47 @@ app.use(cors({ origin: "*" }))
 app.use(express.json({ limit: "25mb" }))
 app.use(express.urlencoded({ extended: true, limit: "25mb" }))
 
-// Routes
-app.use("/api/issues", issuesRouter)
+// Lazy DB connection for serverless environments (e.g. Vercel)
+let dbPromise: Promise<boolean> | null = null
+function lazyConnectDB(): Promise<boolean> {
+  if (mongoose.connection.readyState === 1) return Promise.resolve(true)
+  if (!dbPromise) {
+    dbPromise = connectMongoDB().finally(() => {
+      dbPromise = null
+    })
+  }
+  return dbPromise
+}
 
-// Health Check Endpoint
-app.get("/api/health", (_req, res) => {
+app.use(async (_req, _res, next) => {
+  if (mongoose.connection.readyState !== 1) {
+    try {
+      await lazyConnectDB()
+    } catch {
+      // In-memory fallback available in router
+    }
+  }
+  next()
+})
+
+// Routes: support both /api/... and /... in case Vercel rewrite strips prefix
+app.use("/api/issues", issuesRouter)
+app.use("/issues", issuesRouter)
+
+// Health Check Endpoint: support both /api/health and /health
+const healthHandler = (_req: express.Request, res: express.Response) => {
   res.json({
     status: "ok",
     service: "Matram AI Civic Backend API",
-    mongodb: "Connected",
+    mongodb: mongoose.connection.readyState === 1 ? "Connected" : "Fallback Store",
     timestamp: new Date().toISOString(),
   })
-})
+}
+app.get("/api/health", healthHandler)
+app.get("/health", healthHandler)
+app.get("/", healthHandler)
 
-// Start Server and Connect DB
+// Only start standalone server and listener when NOT running in Vercel Serverless
 async function startServer() {
   const dbConnected = await connectMongoDB()
   if (dbConnected) {
@@ -52,8 +80,9 @@ async function startServer() {
   })
 }
 
-startServer()
+if (!process.env.VERCEL) {
+  startServer()
+}
 
 export { app }
 export default app
-

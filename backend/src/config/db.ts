@@ -11,27 +11,19 @@ export async function connectMongoDB(): Promise<boolean> {
     console.log("✅ Successfully connected to MongoDB Atlas Database!")
     return true
   } catch (atlasError: any) {
-    console.warn("⚠️ Could not connect to MongoDB Atlas. Trying local MongoDB (mongodb://127.0.0.1:27017/matram_ai)...")
-    
-    try {
-      await mongoose.connect("mongodb://127.0.0.1:27017/matram_ai", {
-        serverSelectionTimeoutMS: 2000,
-      })
-      console.log("✅ Connected to Local MongoDB Database!")
-      return true
-    } catch (localError: any) {
-      console.error("\n==========================================================================")
-      console.error("ℹ️ MONGODB CLOUD & LOCAL NOT REACHABLE")
-      console.error("==========================================================================")
-      console.error("Running backend in Local Persistent Mode.")
-      console.error("\n📌 To connect to MongoDB Atlas Cloud:")
-      console.error("  1. Log into MongoDB Atlas: https://cloud.mongodb.com")
-      console.error("  2. Go to Security -> Network Access -> Add IP Address")
-      console.error("  3. Select 'Allow Access from Anywhere' (0.0.0.0/0)")
-      console.error("==========================================================================\n")
-      
-      return false
+    if (!process.env.VERCEL) {
+      console.warn("⚠️ Could not connect to MongoDB Atlas. Trying local MongoDB (mongodb://127.0.0.1:27017/matram_ai)...")
+      try {
+        await mongoose.connect("mongodb://127.0.0.1:27017/matram_ai", {
+          serverSelectionTimeoutMS: 2000,
+        })
+        console.log("✅ Connected to Local MongoDB Database!")
+        return true
+      } catch (localError: any) {
+        console.error("Local MongoDB also not reachable. Running in Local Memory Fallback Mode.")
+      }
     }
+    return false
   }
 }
 
